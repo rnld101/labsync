@@ -54,7 +54,7 @@ The IAM user `rn1d` cannot launch EC2 via CLI (org SCP restriction). Use the AWS
    | Setting | Value |
    |---|---|
    | Name | `lablumen-test` |
-   | AMI | Amazon Linux 2023 — `ami-0521cb2d60cfbb1a6` (us-east-1) |
+   | AMI | Ubuntu 24.04 LTS — `ami-0f8a61b66d1accaee` (us-east-1) |
    | Instance type | `t3.large` |
    | Key pair | `rnld2` |
    | Security group | Select existing: `lablumen-sg` (`sg-0cd62be1c32705ec0`) |
@@ -70,25 +70,32 @@ exec > /var/log/lablumen-setup.log 2>&1
 
 echo "=== LabLumen bootstrap start $(date) ==="
 
-dnf update -y
-dnf install -y docker git
+apt-get update -y
+apt-get install -y ca-certificates curl gnupg git
+
+# Install Docker CE via official repo
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  > /etc/apt/sources.list.d/docker.list
+
+apt-get update -y
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 systemctl enable docker
 systemctl start docker
-usermod -aG docker ec2-user
+usermod -aG docker ubuntu
 
-mkdir -p /usr/local/lib/docker/cli-plugins
-curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
-  -o /usr/local/lib/docker/cli-plugins/docker-compose
-chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
-
-cd /home/ec2-user
+cd /home/ubuntu
 git clone https://github.com/rnld101/lablumen.git lablumen
-chown -R ec2-user:ec2-user /home/ec2-user/lablumen
+chown -R ubuntu:ubuntu /home/ubuntu/lablumen
 
-cd /home/ec2-user/lablumen
-sudo -u ec2-user docker compose up --build -d
+cd /home/ubuntu/lablumen
+sudo -u ubuntu docker compose up --build -d
 
 echo "=== LabLumen bootstrap done $(date) ==="
 echo "App ready at: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
@@ -108,7 +115,7 @@ The user-data script runs in the background. It takes **10–15 minutes** (image
 SSH in and tail the log to watch progress:
 
 ```bash
-ssh -i /path/to/rnld2.pem ec2-user@<EC2-PUBLIC-IP>
+ssh -i /path/to/rnld2.pem ubuntu@<EC2-PUBLIC-IP>
 tail -f /var/log/lablumen-setup.log
 ```
 
@@ -182,7 +189,7 @@ The nginx proxy means the browser always calls the same origin → **zero CORS i
 SSH into the instance and run:
 
 ```bash
-ssh -i /path/to/rnld2.pem ec2-user@<EC2-PUBLIC-IP>
+ssh -i /path/to/rnld2.pem ubuntu@<EC2-PUBLIC-IP>
 cd ~/lablumen
 
 # First time
