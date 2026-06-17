@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     presigned_url_ttl_seconds: int = 120
 
     bedrock_embed_model_id: str = "amazon.titan-embed-text-v1"
-    # Nova 2 Lite requires an inference profile for on-demand invocation (us. cross-region).
-    bedrock_text_model_id: str = "us.amazon.nova-2-lite-v1:0"
+    # Nova Lite (v1): on-demand in us-east-1. Nova 2 Lite needs a cross-region inference profile,
+    # which the org SCP (us-east-1 only) blocks. See docker-compose.yml.
+    bedrock_text_model_id: str = "amazon.nova-lite-v1:0"
 
     # Pass as a JSON array: CORS_ORIGINS='["*"]' or CORS_ORIGINS='["http://localhost:5173"]'
     cors_origins: list[str] = ["http://localhost:5173"]
