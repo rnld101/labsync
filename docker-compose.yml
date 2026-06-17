@@ -1,0 +1,93 @@
+# Local development loop for LabLumen.
+# Brings up Postgres+pgvector and Redis, applies Alembic migrations + seed (the `migrate`
+# one-shot), then starts the three FastAPI services. No AWS account required to boot.
+name: lablumen
+
+x-service-env: &service-env
+  DATABASE_URL: postgresql+asyncpg://lablumen:lablumen@postgres:5432/lablumen
+  REDIS_URL: redis://redis:6379/0
+  AWS_REGION: us-east-1
+  COGNITO_USER_POOL_ID: us-east-1_local0000
+  COGNITO_APP_CLIENT_ID: localclientid0000000000000
+  BEDROCK_EMBED_MODEL_ID: amazon.titan-embed-text-v1
+  BEDROCK_TEXT_MODEL_ID: amazon.nova-2-lite-v1:0
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: lablumen
+      POSTGRES_PASSWORD: lablumen
+      POSTGRES_DB: lablumen
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lablumen -d lablumen"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: ./backend/appointment-service
+    command: alembic upgrade head
+    environment:
+      <<: *service-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  appointment-service:
+    build: ./backend/appointment-service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      <<: *service-env
+    ports:
+      - "8001:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  report-service:
+    build: ./backend/report-service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      <<: *service-env
+      REPORTS_S3_BUCKET: lablumen-reports-local
+      PRESIGNED_URL_TTL_SECONDS: "120"
+    ports:
+      - "8002:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  notification-service:
+    build: ./backend/notification-service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      <<: *service-env
+      NOTIFICATIONS_QUEUE_URL: https://sqs.us-east-1.amazonaws.com/000000000000/lablumen-notifications
+      SES_SENDER_EMAIL: no-reply@lablumen.local
+    ports:
+      - "8003:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
