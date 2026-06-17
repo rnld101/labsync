@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,13 +14,18 @@ class Settings(BaseSettings):
     cognito_user_pool_id: str = ""
     cognito_app_client_id: str = ""
 
-    # appointment-service publishes domain events for notification-service to consume.
     notifications_queue_url: str = ""
-
-    # Appointment slot-lock window (seconds) held in Redis across workers.
     slot_lock_ttl_seconds: int = 300
 
+    # Set CORS_ORIGINS=* to allow all origins, or comma-separated list of specific origins.
     cors_origins: list[str] = ["http://localhost:5173"]
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: object) -> list[str]:
+        if isinstance(v, str):
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return v  # type: ignore[return-value]
 
 
 settings = Settings()

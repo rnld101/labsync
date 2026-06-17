@@ -1,16 +1,19 @@
-# Local development loop for LabLumen.
-# Brings up Postgres+pgvector and Redis, applies Alembic migrations + seed (the `migrate`
-# one-shot), then starts the three FastAPI services. No AWS account required to boot.
+# LabLumen — single-EC2 docker compose stack.
+# nginx (port 80) serves the frontend and reverse-proxies /api/v1/ to the backend services.
+# Postgres + Redis run locally in the compose network — no RDS needed.
 name: lablumen
 
 x-service-env: &service-env
   DATABASE_URL: postgresql+asyncpg://lablumen:lablumen@postgres:5432/lablumen
   REDIS_URL: redis://redis:6379/0
   AWS_REGION: us-east-1
-  COGNITO_USER_POOL_ID: us-east-1_local0000
-  COGNITO_APP_CLIENT_ID: localclientid0000000000000
+  COGNITO_USER_POOL_ID: us-east-1_3hMVOZPch
+  COGNITO_APP_CLIENT_ID: 7eb2d3esnbfs3te482jgsfqp6t
   BEDROCK_EMBED_MODEL_ID: amazon.titan-embed-text-v1
   BEDROCK_TEXT_MODEL_ID: amazon.nova-2-lite-v1:0
+  # Allow all origins — browser calls never leave nginx (same-origin), but this keeps
+  # direct curl / Postman calls against :8001-8003 working too.
+  CORS_ORIGINS: "*"
 
 services:
   postgres:
@@ -53,6 +56,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     environment:
       <<: *service-env
+      NOTIFICATIONS_QUEUE_URL: https://sqs.us-east-1.amazonaws.com/130290476321/lablumen-notifications
     ports:
       - "8001:8000"
     depends_on:
@@ -66,7 +70,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     environment:
       <<: *service-env
-      REPORTS_S3_BUCKET: lablumen-reports-local
+      REPORTS_S3_BUCKET: lablumen-reports-130290476321
       PRESIGNED_URL_TTL_SECONDS: "120"
     ports:
       - "8002:8000"
@@ -81,13 +85,30 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     environment:
       <<: *service-env
-      NOTIFICATIONS_QUEUE_URL: https://sqs.us-east-1.amazonaws.com/000000000000/lablumen-notifications
-      SES_SENDER_EMAIL: no-reply@lablumen.local
+      NOTIFICATIONS_QUEUE_URL: https://sqs.us-east-1.amazonaws.com/130290476321/lablumen-notifications
+      SES_SENDER_EMAIL: rukesully@gmail.com
     ports:
       - "8003:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_APPOINTMENT_API: ""
+        VITE_REPORT_API: ""
+        VITE_COGNITO_USER_POOL_ID: us-east-1_3hMVOZPch
+        VITE_COGNITO_APP_CLIENT_ID: 7eb2d3esnbfs3te482jgsfqp6t
+        VITE_COGNITO_DOMAIN: https://lablumen-users.auth.us-east-1.amazoncognito.com
+    ports:
+      - "80:80"
+    depends_on:
+      - appointment-service
+      - report-service
+      - notification-service
 
 volumes:
   pgdata:
