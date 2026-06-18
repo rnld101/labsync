@@ -47,6 +47,8 @@ export function PatientDashboard() {
                       {r.patient_name} · {new Date(r.created_at).toLocaleDateString()} ·{" "}
                       {r.has_summary ? (
                         <span className="text-success">Ready</span>
+                      ) : r.processing_failed ? (
+                        <span className="text-danger">Processing failed</span>
                       ) : (
                         <span className="text-warning">Processing…</span>
                       )}
@@ -58,7 +60,7 @@ export function PatientDashboard() {
                     </Button>
                     <Button
                       size="sm"
-                      disabled={!r.has_summary}
+                      disabled={!r.has_summary || r.processing_failed}
                       onClick={() => setChatReport(r)}
                     >
                       Chat

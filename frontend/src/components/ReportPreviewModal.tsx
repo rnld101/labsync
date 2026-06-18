@@ -33,7 +33,7 @@ export function ReportPreviewModal({ open, url, onClose }: ReportPreviewModalPro
         </div>
         <div className="flex-1 bg-surface">
           {url ? (
-            <iframe title="Report preview" src={url} className="h-full w-full" sandbox="" />
+            <iframe title="Report preview" src={url} className="h-full w-full" />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-text-muted">
               No report loaded (presigned URL is fetched on demand).

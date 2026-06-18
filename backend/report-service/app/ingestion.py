@@ -32,6 +32,9 @@ def _run_pipeline_sync(bucket: str, key: str) -> tuple[str, list[tuple[str, list
     return summary, chunks_with_vectors
 
 
+_FAILED_SENTINEL = "__failed__"
+
+
 async def process_report(report_id: str, key: str) -> None:
     """Background entrypoint: OCR + summarize + embed an uploaded report, then persist."""
     bucket = settings.reports_s3_bucket
@@ -39,6 +42,15 @@ async def process_report(report_id: str, key: str) -> None:
         summary, chunks_with_vectors = await asyncio.to_thread(_run_pipeline_sync, bucket, key)
     except Exception:
         logger.exception("Ingestion failed for report_id=%s key=%s", report_id, key)
+        async with SessionLocal() as session:
+            await session.execute(
+                text(
+                    "UPDATE lab_reports SET ai_layman_summary = :s "
+                    "WHERE report_id = CAST(:rid AS uuid)"
+                ),
+                {"s": _FAILED_SENTINEL, "rid": report_id},
+            )
+            await session.commit()
         return
 
     async with SessionLocal() as session:

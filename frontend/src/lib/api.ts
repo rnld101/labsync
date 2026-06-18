@@ -63,6 +63,7 @@ export interface Report {
   created_at: string;
   has_summary: boolean;
   summary: string | null;
+  processing_failed: boolean;
 }
 
 export interface ReportView {

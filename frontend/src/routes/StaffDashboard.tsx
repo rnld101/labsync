@@ -7,19 +7,10 @@ import { Button } from "@/components/ui/button";
 import { useOps } from "@/hooks/useOps";
 import { api, type OpsRow } from "@/lib/api";
 
-const STATUSES = ["Booked", "Checked-In", "Completed", "Cancelled"];
-
 function OpsRowItem({ row }: { row: OpsRow }) {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState<string | null>(null);
-
-  const setStatus = useMutation({
-    mutationFn: (newStatus: string) =>
-      api.updateAppointmentStatus(row.appointment_id, newStatus),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ops"] }),
-    onError: (e) => setNote(e instanceof Error ? e.message : "Status update failed"),
-  });
 
   const upload = useMutation({
     mutationFn: (file: File) => api.uploadReport(row.mapping_id, file),
@@ -36,20 +27,6 @@ function OpsRowItem({ row }: { row: OpsRow }) {
       <td className="py-2 pr-3 text-sm text-text-dark">{row.test_name}</td>
       <td className="py-2 pr-3 text-xs text-text-muted">
         {row.appointment_date} {row.time_slot}
-      </td>
-      <td className="py-2 pr-3">
-        <select
-          value={row.status}
-          onChange={(e) => setStatus.mutate(e.target.value)}
-          disabled={setStatus.isPending}
-          className="rounded-bento border border-slate-200 px-2 py-1 text-xs"
-        >
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
       </td>
       <td className="py-2 text-right">
         {row.has_report ? (
@@ -119,7 +96,6 @@ export function StaffDashboard() {
                   <th className="py-2 pr-3 font-medium">Patient</th>
                   <th className="py-2 pr-3 font-medium">Test</th>
                   <th className="py-2 pr-3 font-medium">When</th>
-                  <th className="py-2 pr-3 font-medium">Status</th>
                   <th className="py-2 text-right font-medium">Report</th>
                 </tr>
               </thead>

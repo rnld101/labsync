@@ -9,6 +9,9 @@ class ReportViewOut(BaseModel):
     expires_in: int
 
 
+_FAILED_SENTINEL = "__failed__"
+
+
 class ReportListItem(BaseModel):
     report_id: uuid.UUID
     test_name: str
@@ -16,6 +19,7 @@ class ReportListItem(BaseModel):
     created_at: datetime.datetime
     has_summary: bool
     summary: str | None = None
+    processing_failed: bool = False
 
 
 class ReportUploadOut(BaseModel):

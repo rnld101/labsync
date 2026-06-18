@@ -31,6 +31,7 @@ from ..db import get_session
 from ..ingestion import process_report
 from ..s3 import generate_presigned_get_url, put_object
 from ..schemas import (
+    _FAILED_SENTINEL,
     ChatRequest,
     ChatResponse,
     ReportListItem,
@@ -106,8 +107,9 @@ async def list_my_reports(
             test_name=r["test_name"],
             patient_name=r["patient_name"],
             created_at=r["created_at"],
-            has_summary=r["ai_layman_summary"] is not None,
-            summary=r["ai_layman_summary"],
+            has_summary=r["ai_layman_summary"] not in (None, _FAILED_SENTINEL),
+            summary=r["ai_layman_summary"] if r["ai_layman_summary"] != _FAILED_SENTINEL else None,
+            processing_failed=r["ai_layman_summary"] == _FAILED_SENTINEL,
         )
         for r in rows
     ]
@@ -167,6 +169,28 @@ async def upload_report(
                 "VALUES (CAST(:rid AS uuid), CAST(:mid AS uuid), :key)"
             ),
             {"rid": str(report_id), "mid": str(mapping_id), "key": key},
+        )
+        # Complete the appointment only when every test in it now has a report.
+        await session.execute(
+            text("""
+                UPDATE appointments
+                SET status = 'Completed'
+                WHERE appointment_id = (
+                    SELECT appointment_id FROM appointment_test_mapping
+                    WHERE mapping_id = CAST(:mid AS uuid)
+                )
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM appointment_test_mapping atm2
+                    LEFT JOIN lab_reports lr ON lr.mapping_id = atm2.mapping_id
+                    WHERE atm2.appointment_id = (
+                        SELECT appointment_id FROM appointment_test_mapping
+                        WHERE mapping_id = CAST(:mid AS uuid)
+                    )
+                    AND lr.report_id IS NULL
+                )
+            """),
+            {"mid": str(mapping_id)},
         )
         await session.commit()
     except Exception as exc:
