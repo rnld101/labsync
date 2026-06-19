@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Users } from "lucide-react";
 import { useState } from "react";
 
-const GENDERS = ["male", "female", "other"];
+const GENDERS = ["Male", "Female", "Other"];
 const RELATIONSHIPS = ["self", "spouse", "child", "parent", "sibling", "other"];
 
 function ProfileCard({ profile }: { profile: PatientProfile }) {
@@ -39,7 +39,7 @@ export function Family() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState<PatientProfileCreate>({
     first_name: "", last_name: "", phone_number: "",
-    date_of_birth: "", biological_gender: "male", relationship_to_owner: "self",
+    date_of_birth: "", biological_gender: "Male", relationship_to_owner: "self",
   });
 
   const { data: profiles = [], isLoading } = useQuery<PatientProfile[]>({
@@ -53,7 +53,7 @@ export function Family() {
       qc.invalidateQueries({ queryKey: ["patients"] });
       toast("Profile added", "success");
       setSheetOpen(false);
-      setForm({ first_name: "", last_name: "", phone_number: "", date_of_birth: "", biological_gender: "male", relationship_to_owner: "self" });
+      setForm({ first_name: "", last_name: "", phone_number: "", date_of_birth: "", biological_gender: "Male", relationship_to_owner: "self" });
     },
     onError: (err: Error) => toast(err.message, "error"),
   });

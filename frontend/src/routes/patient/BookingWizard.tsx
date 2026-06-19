@@ -36,7 +36,7 @@ const TIME_SLOTS = [
 
 // ── New Profile Sheet ──────────────────────────────────────────────────────
 
-const GENDERS = ["male", "female", "other"];
+const GENDERS = ["Male", "Female", "Other"];
 const RELATIONSHIPS = ["self", "spouse", "child", "parent", "sibling", "other"];
 
 interface NewProfileSheetProps {
@@ -50,7 +50,7 @@ function NewProfileSheet({ open, onClose, onCreated }: NewProfileSheetProps) {
   const { toast } = useToast();
   const [form, setForm] = useState<PatientProfileCreate>({
     first_name: "", last_name: "", phone_number: "",
-    date_of_birth: "", biological_gender: "male", relationship_to_owner: "self",
+    date_of_birth: "", biological_gender: "Male", relationship_to_owner: "self",
   });
 
   const mutation = useMutation({
