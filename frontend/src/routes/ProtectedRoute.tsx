@@ -15,7 +15,7 @@ export function ProtectedRoute({
 }) {
   const { claims, isStaff } = useAuth();
   if (!claims) return <Navigate to="/login" replace />;
-  if (staffOnly && !isStaff) return <Navigate to="/" replace />;
+  if (staffOnly && !isStaff) return <Navigate to="/app" replace />;
   if (patientOnly && isStaff) return <Navigate to="/staff" replace />;
   return <Outlet />;
 }

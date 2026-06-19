@@ -1,20 +1,26 @@
-// Design tokens mirrored from BLUEPRINT.md section 3 for use in TS (charts, inline styles, etc.).
 export const tokens = {
   colors: {
-    primary: "#008080",
+    primary:    "#0D9488",
+    primary50:  "#F0FDFA",
+    primary700: "#0F766E",
     background: "#FFFFFF",
-    surface: "#F8FAFC",
-    success: "#10B981",
-    warning: "#F59E0B",
-    danger: "#EF4444",
-    textDark: "#0F172A",
-    textMuted: "#64748B",
+    surface:    "#F8FAFC",
+    success:    "#059669",
+    success50:  "#ECFDF5",
+    warning:    "#D97706",
+    warning50:  "#FFFBEB",
+    danger:     "#DC2626",
+    danger50:   "#FEF2F2",
+    textDark:   "#0F172A",
+    textMuted:  "#475569",
   },
   borderRadius: {
-    bento: "1rem",
+    sm:    "6px",
+    md:    "8px",
+    bento: "16px",
   },
   boxShadow: {
-    bentoDiffused:
-      "0 10px 25px -5px rgba(0, 128, 128, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02)",
+    elevation1: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
+    elevation2: "0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)",
   },
 } as const;
